@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diagram Cropper</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232b59d9'/%3E%3Cpath d='M10 5v15a2 2 0 0 0 2 2h15M5 10h15a2 2 0 0 1 2 2v15' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/jszip.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <!-- Icons (line style, 24x24) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-logo" viewBox="0 0 24 24"><path d="M7 3v12a2 2 0 0 0 2 2h12M3 7h12a2 2 0 0 1 2 2v12"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+      <symbol id="i-setup" viewBox="0 0 24 24"><path d="M3.5 6.5l1.5 1.5 3-3M3.5 13.5l1.5 1.5 3-3M11 7h10M11 14h10M11 20h10M4 20h4"/></symbol>
+      <symbol id="i-finish" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.7 2.7L16 9.5"/></symbol>
+      <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5.5l9 6.5-9 6.5zM18 5v14"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></symbol>
+      <symbol id="i-fit" viewBox="0 0 24 24"><path d="M3 12h18M3 12l3.5-3.5M3 12l3.5 3.5M21 12l-3.5-3.5M21 12l-3.5 3.5"/></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M7 3.5h10a1 1 0 0 1 1 1V21l-6-4-6 4V4.5a1 1 0 0 1 1-1z"/></symbol>
+      <symbol id="i-images" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="M14 6l4 4"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 20h14"/></symbol>
+      <symbol id="i-none" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-erase" viewBox="0 0 24 24"><path d="M19 20H9.5l-5-5a2 2 0 0 1 0-2.8l7.7-7.7a2 2 0 0 1 2.8 0l4.3 4.3a2 2 0 0 1 0 2.8L13 18"/><path d="M7 10.5l6.5 6.5"/></symbol>
+      <symbol id="i-eraseBox" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1.5" stroke-dasharray="3 2.5"/></symbol>
+      <symbol id="i-lasso" viewBox="0 0 24 24"><path d="M8.5 18.5C5.5 17.3 3.5 15 3.5 12c0-4.4 3.8-8 8.5-8s8.5 3 8.5 6.5-3.8 6.5-8.5 6.5c-1.5 0-2.8-.3-3.9-.8"/><circle cx="7.5" cy="17" r="1.8"/><path d="M8 19c0 1.2-.7 2-2 2.5"/></symbol>
+      <symbol id="i-keep" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></symbol>
+      <symbol id="i-clone" viewBox="0 0 24 24"><path d="M9.5 3.5h5l-1 6h5a1 1 0 0 1 1 1v3.5h-15v-3.5a1 1 0 0 1 1-1h5z"/><path d="M5 18h14v2.5H5z"/></symbol>
+      <symbol id="i-protect" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.8-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.7-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+      <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2.5V16a2 2 0 0 0 2 2h13.5"/><path d="M18 21.5V8a2 2 0 0 0-2-2H2.5"/></symbol>
+      <symbol id="i-persp" viewBox="0 0 24 24"><path d="M6 4.5l13 2.5v10l-13 2.5z"/><circle cx="6" cy="4.5" r="1.3"/><circle cx="19" cy="7" r="1.3"/><circle cx="19" cy="17" r="1.3"/><circle cx="6" cy="19.5" r="1.3"/></symbol>
+      <symbol id="i-rotl" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9L4 8.5"/><path d="M4 3.5v5h5"/></symbol>
+      <symbol id="i-rotr" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9L20 8.5"/><path d="M20 3.5v5h-5"/></symbol>
+      <symbol id="i-fliph" viewBox="0 0 24 24"><path d="M12 3v18M8.5 7L3.5 12l5 5zM15.5 7l5 5-5 5z"/></symbol>
+      <symbol id="i-flipv" viewBox="0 0 24 24"><path d="M3 12h18M7 8.5L12 3.5l5 5zM7 15.5l5 5 5-5z"/></symbol>
+      <symbol id="i-wand" viewBox="0 0 24 24"><path d="M4 20L15 9"/><path d="M15 3.5v2M15 12.5v2M11.5 9h-2M20.5 9h-2M12.5 6.5l-1-1M18.5 12.5l-1-1M17.5 6.5l1-1"/></symbol>
+      <symbol id="i-split" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M12 4v16"/></symbol>
+      <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="16" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.5"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9L4 8.5"/><path d="M4 3.5v5h5"/></symbol>
+      <symbol id="i-pointer" viewBox="0 0 24 24"><path d="M5 3.5l13 7-6 1.5-2.5 6z"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="topbar">
+    <div class="appbar">
+      <div class="brand"><span class="brand-mark"><svg class="ico"><use href="#i-logo"/></svg></span><span class="brand-name">Diagram Cropper</span></div>
+      <div class="appbar-mid">
+        <div class="chip folder-block" title="Images are saved into this folder">
+          <svg class="ico"><use href="#i-folder"/></svg>
+          <span class="chip-label">Folder</span>
+          <span class="folder-name" id="folderName">Not chosen</span>
+          <button type="button" class="btn small ghost" id="folderBtn">Choose images folder</button>
+        </div>
+        <label class="chip preset-pick" title="Settings applied to every new crop">
+          <svg class="ico"><use href="#i-sliders"/></svg>
+          <span class="chip-label">Preset</span>
+          <select id="presetSelect" aria-label="Preset for new crops"></select>
+        </label>
+      </div>
+      <nav class="top-menu" aria-label="Main">
+        <button type="button" class="btn ghost" id="setupBtn"><svg class="ico"><use href="#i-setup"/></svg>Setup</button>
+        <button type="button" class="btn ghost" id="settingsBtn"><svg class="ico"><use href="#i-sliders"/></svg>Settings</button>
+        <button type="button" class="btn primary" id="finishBtn"><svg class="ico"><use href="#i-finish"/></svg>Finish and check</button>
+      </nav>
+    </div>
+
+    <div class="taskbar">
+      <div class="active-block">
+        <div class="eyebrow" id="activeLabel">Now cropping</div>
+        <div class="active-row">
+          <div class="active-name" id="activeName" title="The next approved crop is saved with this name">No names loaded</div>
+          <span class="badge" id="activeBadge" hidden></span>
+        </div>
+        <div class="active-meta" id="activeMeta" hidden>
+          <span class="qno" id="activeQno"></span>
+          <span class="qtext" id="activeText"></span>
+          <button type="button" class="link" id="toggleTextBtn" hidden>Show more</button>
+        </div>
+        <div class="active-note" id="activeNote" hidden></div>
+      </div>
+
+      <div class="next-names" id="nextNames"></div>
+
+      <div class="progress-block">
+        <div class="progress-head">
+          <strong id="progressText">0 / 0 done</strong>
+          <span class="progress-sub" id="progressSub">&nbsp;</span>
+        </div>
+        <div class="bar" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" id="progressBarWrap"><div class="bar-fill" id="progressBar"></div></div>
+      </div>
+
+      <div class="top-actions">
+        <button type="button" class="btn" id="skipBtn" title="Skip this name (S)"><svg class="ico"><use href="#i-skip"/></svg>Skip</button>
+        <button type="button" class="btn" id="undoBtn" title="Undo the last save or skip (Ctrl+Z)" disabled><svg class="ico"><use href="#i-undo"/></svg>Undo</button>
+        <button type="button" class="btn" id="copyActiveBtn" hidden title="Save this image under another name too"><svg class="ico"><use href="#i-copy"/></svg>Use for another name</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="main">
+    <aside class="sidebar" aria-label="Image names">
+      <div class="side-head">
+        <div class="search">
+          <svg class="ico"><use href="#i-search"/></svg>
+          <input type="search" id="searchInput" placeholder="Search name or question number" aria-label="Search names">
+        </div>
+        <div class="side-row">
+          <label class="switch"><input type="checkbox" id="pendingOnly"><span class="track" aria-hidden="true"></span> Show pending only</label>
+        </div>
+        <div class="side-counts" id="sideCounts"></div>
+      </div>
+      <ul class="name-list" id="nameList" role="listbox" aria-label="Names"></ul>
+      <div class="side-empty" id="sideEmpty">
+        <div class="empty-ico"><svg class="ico"><use href="#i-setup"/></svg></div>
+        <p>No names yet.</p>
+        <button type="button" class="btn primary" id="sideLoadBtn">Load names</button>
+      </div>
+      <div class="side-foot">
+        <button type="button" class="btn block" id="reviewBtn"><svg class="ico"><use href="#i-images"/></svg>Review saved images</button>
+      </div>
+    </aside>
+
+    <section class="viewer" aria-label="PDF">
+      <div class="pdf-toolbar">
+        <div class="tool-group">
+          <label class="sr-only" for="pdfSelect">Open PDF</label>
+          <select id="pdfSelect" hidden></select>
+          <button type="button" class="btn small" id="openPdfBtn"><svg class="ico"><use href="#i-file"/></svg><span id="openPdfLabel">Choose PDF</span></button>
+        </div>
+        <div class="tool-group seg-group" role="group" aria-label="Zoom">
+          <button type="button" class="btn small icon" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out"><svg class="ico"><use href="#i-minus"/></svg></button>
+          <span class="zoom-val" id="zoomVal">100%</span>
+          <button type="button" class="btn small icon" id="zoomInBtn" title="Zoom in" aria-label="Zoom in"><svg class="ico"><use href="#i-plus"/></svg></button>
+          <button type="button" class="btn small" id="fitBtn" title="Fit the page width"><svg class="ico"><use href="#i-fit"/></svg>Fit width</button>
+        </div>
+        <div class="tool-group seg-group" role="group" aria-label="Page">
+          <label for="pageInput" class="tg-label">Page</label>
+          <input type="number" id="pageInput" min="1" value="1" class="page-input">
+          <span id="pageCount" class="tg-label">of 0</span>
+          <button type="button" class="btn small" id="goPageBtn">Go</button>
+        </div>
+        <div class="tool-group">
+          <button type="button" class="btn small" id="lastSavedBtn" title="Go to the page of the last saved image" disabled><svg class="ico"><use href="#i-bookmark"/></svg>Last saved</button>
+        </div>
+        <div class="tool-group find" id="findInfo" hidden></div>
+        <div class="tool-hint" id="toolHint">Click a diagram to select it, or drag a box. Ctrl + wheel to zoom.</div>
+      </div>
+      <div class="banner" id="banner" hidden></div>
+      <div class="pdf-wrap">
+        <div class="pdf-scroller" id="scroller" tabindex="-1"></div>
+        <div class="pdf-empty" id="pdfEmpty">
+          <div class="empty-card">
+            <div class="empty-ico big"><svg class="ico"><use href="#i-file"/></svg></div>
+            <h2>Open the question PDF</h2>
+            <p class="muted">All pages show in one long scroll. Click a diagram to select it, or drag a box around it.</p>
+            <div class="row-gap center">
+              <button type="button" class="btn primary big" id="emptyOpenBtn"><svg class="ico"><use href="#i-file"/></svg>Choose PDF</button>
+            </div>
+            <div id="recentPdfs" class="recent"></div>
+            <p class="err" id="pdfError" hidden></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Floating crop panel -->
+  <div class="crop-panel" id="cropPanel" hidden role="dialog" aria-label="Check the crop">
+    <div class="cp-top">
+      <div class="cp-name"><span class="muted">Save as</span> <strong id="cpName"></strong></div>
+      <button type="button" class="btn small" id="editBtn" title="Open the full editor (or double-click the preview)"><svg class="ico"><use href="#i-edit"/></svg>Edit</button>
+    </div>
+    <div class="cp-preset" id="cpPreset"></div>
+    <div class="cp-mode" id="cpMode" hidden>This is the saved crop. Adjust it and Approve to replace the file, or draw a new box.</div>
+    <div class="cp-preview" title="Double-click to open the editor"><canvas id="cpCanvas"></canvas></div>
+    <div class="cp-info" id="cpInfo"></div>
+    <div class="cp-warn" id="cpWarn" hidden></div>
+    <div class="cp-buttons">
+      <button type="button" class="btn big" id="retakeBtn">Retake <kbd>Esc</kbd></button>
+      <button type="button" class="btn big primary" id="approveBtn">Approve <kbd>Enter</kbd></button>
+    </div>
+    <div class="cp-tip">Drag the box or its corners to adjust.</div>
+  </div>
+
+  <div class="saved-card" id="savedCard" hidden>
+    <img id="savedImg" alt="">
+    <div class="sc-body">
+      <div class="sc-title"><svg class="ico ok"><use href="#i-check"/></svg>Saved <strong id="savedName"></strong></div>
+      <div class="sc-sub" id="savedSub"></div>
+      <button type="button" class="btn small" id="savedCopyBtn"><svg class="ico"><use href="#i-copy"/></svg>Use for another name</button>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- Setup -->
+  <dialog id="setupDialog" class="dlg wide" aria-labelledby="setupTitle">
+    <div class="dlg-head">
+      <h2 id="setupTitle">Set up</h2>
+      <button type="button" class="btn icon ghost dlg-x" data-close aria-label="Close" title="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body setup">
+      <section class="step" id="stepFolder">
+        <h3><span class="step-no">1</span> Choose the images folder</h3>
+        <p class="muted">Approved crops are saved straight into this folder. Images already in it are marked Done.</p>
+        <div class="row-gap">
+          <button type="button" class="btn primary" id="setupFolderBtn">Choose images folder</button>
+          <span id="setupFolderStatus" class="status-line"></span>
+        </div>
+        <p class="err" id="folderError" hidden></p>
+        <p class="note" id="fallbackNote" hidden>Your browser cannot save straight into a folder. Each image will be downloaded with the correct name to your Downloads folder instead. For the best experience, use Chrome or Edge.</p>
+      </section>
+
+      <section class="step" id="stepNames">
+        <h3><span class="step-no">2</span> Load the image names</h3>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" class="tab" id="tabPaste" aria-selected="true">Paste names</button>
+          <button type="button" role="tab" class="tab" id="tabExcel" aria-selected="false">Upload Excel</button>
+        </div>
+        <div id="panePaste" class="pane">
+          <label for="pasteArea" class="muted">One name per line, for example q12_fig1.png</label>
+          <textarea id="pasteArea" rows="7" spellcheck="false" placeholder="q1_fig1.png&#10;q2_fig1.png&#10;q5_fig1.png"></textarea>
+          <button type="button" class="btn" id="checkPasteBtn">Check names</button>
+        </div>
+        <div id="paneExcel" class="pane" hidden>
+          <div class="row-gap">
+            <button type="button" class="btn" id="excelBtn">Choose Excel file</button>
+            <span id="excelFileName" class="status-line"></span>
+          </div>
+          <div class="grid-cols" id="excelCols" hidden>
+            <label>Sheet <select id="sheetSelect"></select></label>
+            <label>Image name column <select id="colImage"></select></label>
+            <label>Question number column <select id="colQno"></select></label>
+            <label>Question text column <select id="colText"></select></label>
+          </div>
+          <p class="err" id="excelError" hidden></p>
+        </div>
+        <div id="review" class="review" hidden></div>
+      </section>
+
+      <section class="step" id="stepPdf">
+        <h3><span class="step-no">3</span> Open the PDF</h3>
+        <p class="muted">You can open another PDF at any time. Progress is kept.</p>
+        <div class="row-gap">
+          <button type="button" class="btn primary" id="setupPdfBtn">Choose PDF</button>
+          <span id="setupPdfStatus" class="status-line"></span>
+        </div>
+      </section>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger-outline" id="resetBtn">Reset</button>
+      <span class="spacer"></span>
+      <span class="muted" id="setupSummary"></span>
+      <button type="button" class="btn primary big" id="startBtn">Start cropping</button>
+    </div>
+  </dialog>
+
+  <!-- Settings and presets -->
+  <dialog id="settingsDialog" class="dlg xwide" aria-labelledby="settingsTitle">
+    <div class="dlg-head">
+      <h2 id="settingsTitle">Settings and presets</h2>
+      <span class="spacer"></span>
+      <button type="button" class="btn small" id="setExport"><svg class="ico"><use href="#i-download"/></svg>Export settings (JSON)</button>
+      <button type="button" class="btn small" id="setImport"><svg class="ico"><use href="#i-upload"/></svg>Import settings</button>
+      <button type="button" class="btn icon ghost dlg-x" data-close aria-label="Close" title="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body settings-page">
+      <div class="presets-col">
+        <h3>Presets</h3>
+        <ul class="preset-list" id="presetList" role="listbox" aria-label="Presets"></ul>
+        <div class="preset-actions">
+          <button type="button" class="btn small primary" id="pUse">Use for new crops</button>
+          <button type="button" class="btn small" id="pDefault">Set as default</button>
+          <button type="button" class="btn small" id="pDuplicate">Duplicate</button>
+          <button type="button" class="btn small" id="pRename">Rename</button>
+          <button type="button" class="btn small danger-outline" id="pDelete">Delete</button>
+        </div>
+        <h3>Capture</h3>
+        <label class="field">Sharpness of the crop from the PDF
+          <select id="setDpi">
+            <option value="216">Standard (216 dpi)</option>
+            <option value="300">High (300 dpi)</option>
+            <option value="400">Very high (400 dpi)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="setAutoFind"> Scroll to each question in the PDF automatically</label>
+        <label class="check"><input type="checkbox" id="setClickCrop"> Click a diagram to select it automatically</label>
+        <h3>Stored original crops</h3>
+        <p class="muted" id="origUsage">—</p>
+        <p class="muted small-note">Originals let you re-edit and re-process images without losing quality.</p>
+        <button type="button" class="btn small danger-outline" id="origClear">Clear originals</button>
+      </div>
+      <div class="preset-edit">
+        <div class="row-gap">
+          <h3 id="pEditTitle">Preset</h3>
+          <span class="badge" id="pEditBadge" hidden></span>
+          <span class="spacer"></span>
+          <button type="button" class="btn small primary" id="pSave">Save changes</button>
+          <button type="button" class="btn small" id="pSaveAs">Save as new preset</button>
+        </div>
+        <p class="muted" id="pEditNote"></p>
+        <div class="set-grid" id="pControls"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Editor -->
+  <dialog id="editorDialog" class="editor" aria-labelledby="edTitle">
+    <div class="ed-head">
+      <h2 id="edTitle">Edit <span id="edName" class="mono"></span></h2>
+      <span class="badge custom" id="edCustom" hidden>custom</span>
+      <span class="ed-busy" id="edBusy" hidden>Working…</span>
+      <span class="spacer"></span>
+      <span class="muted" id="edSpeed"></span>
+      <label class="preset-pick">Preset <select id="edPreset"></select></label>
+    </div>
+    <div class="ed-main">
+      <aside class="ed-tools-col">
+        <div class="ed-tools" id="edTools" role="toolbar" aria-label="Tools"></div>
+        <p class="ed-help" id="edHelp"></p>
+        <div id="edBrushBox" class="ed-group">
+          <label>Brush size <strong id="edBrushVal">30</strong> px <input type="range" id="edBrush" min="4" max="300" value="30"></label>
+          <label class="check"><input type="checkbox" id="edSoft" checked> Soft edge</label>
+          <p class="muted">Keys [ and ] change the size.</p>
+          <button type="button" class="btn small" id="edCloneReset">Pick copy-from point again</button>
+        </div>
+        <div id="edCropBox" class="ed-group">
+          <button type="button" class="btn small primary" id="edCropDone">Done</button>
+          <button type="button" class="btn small" id="edCropClear">Clear fine crop</button>
+        </div>
+        <div id="edPerspBox" class="ed-group">
+          <button type="button" class="btn small primary" id="edPerspApply">Apply perspective</button>
+        </div>
+        <div class="ed-group">
+          <h4>Rotate and straighten</h4>
+          <div class="btn-grid">
+            <button type="button" class="btn small" id="edRotL" title="Rotate 90° left"><svg class="ico"><use href="#i-rotl"/></svg>Left</button>
+            <button type="button" class="btn small" id="edRotR" title="Rotate 90° right"><svg class="ico"><use href="#i-rotr"/></svg>Right</button>
+            <button type="button" class="btn small" id="edFlipH" title="Mirror left to right"><svg class="ico"><use href="#i-fliph"/></svg>Flip</button>
+            <button type="button" class="btn small" id="edFlipV" title="Mirror top to bottom"><svg class="ico"><use href="#i-flipv"/></svg>Flip</button>
+          </div>
+          <label>Fine rotate <strong id="edAngleVal">0.0°</strong>
+            <input type="range" id="edAngle" min="-15" max="15" step="0.1" value="0">
+          </label>
+          <button type="button" class="btn small" id="edAngleReset">Reset rotation</button>
+          <button type="button" class="btn small primary-outline" id="edDeskew" title="Detect and fix a slightly tilted crop"><svg class="ico"><use href="#i-wand"/></svg>Auto deskew</button>
+          <p class="muted" id="edDeskewInfo"></p>
+          <button type="button" class="btn small" id="edDeskewReset" hidden>Undo tilt fix</button>
+          <button type="button" class="btn small" id="edPerspClear" hidden>Remove perspective fix</button>
+          <button type="button" class="btn small" id="edProtectClear" hidden>Remove protect areas</button>
+        </div>
+      </aside>
+      <div class="ed-stage" id="edStage">
+        <div class="ed-canvas-wrap">
+          <canvas id="edCanvas"></canvas>
+          <canvas id="edOverlay"></canvas>
+        </div>
+      </div>
+      <aside class="ed-side">
+        <div class="ed-custom">
+          <span id="edCustomNote" class="muted"></span>
+          <button type="button" class="btn small" id="edClearCustom">Use preset settings</button>
+        </div>
+        <div id="edSettings"></div>
+        <section class="set-sec">
+          <h4>Presets</h4>
+          <div class="row-gap"><input type="text" id="edPresetName" placeholder="New preset name" aria-label="New preset name"><button type="button" class="btn small" id="edSavePreset">Save as new preset</button></div>
+          <button type="button" class="btn small" id="edUpdatePreset">Update this preset</button>
+          <h4>Other images</h4>
+          <button type="button" class="btn small" id="edApplyRemaining">Apply these settings to all remaining images</button>
+          <button type="button" class="btn small" id="edApplyAll">Apply to all images (including Done)</button>
+          <div class="row-gap"><button type="button" class="btn small" id="edCopy">Copy settings</button><button type="button" class="btn small" id="edPaste">Paste settings</button></div>
+        </section>
+      </aside>
+    </div>
+    <div class="ed-foot">
+      <button type="button" class="btn" id="edUndo" title="Undo (Ctrl+Z)"><svg class="ico"><use href="#i-undo"/></svg>Undo</button>
+      <button type="button" class="btn" id="edRedo" title="Redo (Ctrl+Y)"><svg class="ico"><use href="#i-redo"/></svg>Redo</button>
+      <button type="button" class="btn" id="edReset" title="Reset to original: remove every edit and go back to the original crop"><svg class="ico"><use href="#i-reset"/></svg>Reset</button>
+      <span class="sep"></span>
+      <button type="button" class="btn" id="edHold" title="Hold down to see the original"><svg class="ico"><use href="#i-none"/></svg>Hold to compare</button>
+      <button type="button" class="btn" data-compare="split" title="Drag the line to compare"><svg class="ico"><use href="#i-split"/></svg>Split view</button>
+      <button type="button" class="btn" data-compare="side"><svg class="ico"><use href="#i-columns"/></svg>Side by side</button>
+      <span class="ed-info" id="edInfo"></span>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="edBack">Back to crop</button>
+      <button type="button" class="btn" id="edRetake">Retake</button>
+      <button type="button" class="btn big primary" id="edApprove">Approve <kbd>Enter</kbd></button>
+    </div>
+  </dialog>
+
+  <!-- Finish and check -->
+  <dialog id="finishDialog" class="dlg wide" aria-labelledby="finishTitle">
+    <div class="dlg-head">
+      <h2 id="finishTitle">Finish and check</h2>
+      <button type="button" class="btn icon ghost dlg-x" data-close aria-label="Close" title="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <div class="report-cols" id="reportCols"></div>
+      <section class="verify">
+        <div class="row-gap">
+          <h3>Check the folder</h3>
+          <button type="button" class="btn primary" id="verifyBtn"><svg class="ico"><use href="#i-finish"/></svg>Check that every name has a file</button>
+        </div>
+        <div id="verifyResult"></div>
+      </section>
+      <section class="exports">
+        <h3>Download</h3>
+        <div class="row-gap wrap">
+          <button type="button" class="btn" id="csvBtn"><svg class="ico"><use href="#i-download"/></svg>Progress report (CSV)</button>
+          <button type="button" class="btn" id="zipBtn"><svg class="ico"><use href="#i-download"/></svg>All images (ZIP)</button>
+          <button type="button" class="btn" id="excelOutBtn"><svg class="ico"><use href="#i-download"/></svg>Updated Excel</button>
+        </div>
+        <h3>Look over the images</h3>
+        <div class="row-gap wrap">
+          <button type="button" class="btn" id="finishReviewBtn"><svg class="ico"><use href="#i-images"/></svg>Review saved images</button>
+        </div>
+        <h3>Backup</h3>
+        <div class="row-gap wrap">
+          <button type="button" class="btn" id="backupBtn"><svg class="ico"><use href="#i-download"/></svg>Save backup (JSON)</button>
+          <button type="button" class="btn" id="restoreBtn"><svg class="ico"><use href="#i-upload"/></svg>Restore from backup</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
+  <!-- Review all saved images -->
+  <dialog id="reviewDialog" class="dlg xwide" aria-labelledby="reviewTitle">
+    <div class="dlg-head">
+      <h2 id="reviewTitle">Review saved images</h2>
+      <label class="check"><input type="checkbox" id="reviewWarnOnly"> Only images that need a look</label>
+      <span class="spacer"></span>
+      <button type="button" class="btn icon ghost dlg-x" data-close aria-label="Close" title="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <div class="batch-bar">
+        <button type="button" class="btn small" id="gSelAll">Select all</button>
+        <button type="button" class="btn small" id="gSelNone">Select none</button>
+        <span class="muted" id="gSelCount">0 selected</span>
+        <span class="sep"></span>
+        <label>Preset <select id="gPreset"></select></label>
+        <button type="button" class="btn small primary" id="gReprocess"><svg class="ico"><use href="#i-reset"/></svg>Re-process selected</button>
+        <button type="button" class="btn small" id="gPaste"><svg class="ico"><use href="#i-copy"/></svg>Paste settings to selected</button>
+        <span class="spacer"></span>
+        <div class="gprog" id="gProgress" hidden><div class="bar"><div class="bar-fill" id="gProgressBar"></div></div><span id="gProgressText"></span></div>
+      </div>
+      <p class="muted">Check that each picture matches its name and question. Click a picture to edit it. Tick pictures to re-process them together.</p>
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </dialog>
+
+  <!-- Pick a name (for "Use for another name") -->
+  <dialog id="pickerDialog" class="dlg" aria-labelledby="pickerTitle">
+    <div class="dlg-head">
+      <h2 id="pickerTitle">Save the same image as…</h2>
+      <button type="button" class="btn icon ghost dlg-x" data-close aria-label="Close" title="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <input type="search" id="pickerSearch" placeholder="Search names" aria-label="Search names">
+      <label class="check"><input type="checkbox" id="pickerAll"> Show all names (not just pending)</label>
+      <ul class="pick-list" id="pickerList"></ul>
+    </div>
+  </dialog>
+
+  <!-- Enlarged image -->
+  <dialog id="viewDialog" class="dlg wide" aria-labelledby="viewTitle">
+    <div class="dlg-head">
+      <h2 id="viewTitle"></h2>
+      <button type="button" class="btn icon ghost dlg-x" data-close aria-label="Close" title="Close"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body view-body">
+      <div class="view-img"><img id="viewImg" alt=""></div>
+      <p id="viewInfo" class="muted"></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn" id="viewGoBtn"><svg class="ico"><use href="#i-bookmark"/></svg>Go to this page</button>
+      <button type="button" class="btn" id="viewCopyBtn"><svg class="ico"><use href="#i-copy"/></svg>Use for another name</button>
+      <button type="button" class="btn" id="viewEditBtn"><svg class="ico"><use href="#i-edit"/></svg>Edit image</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn primary" id="viewReplaceBtn">Replace this image</button>
+    </div>
+  </dialog>
+
+  <!-- Skip -->
+  <dialog id="skipDialog" class="dlg narrow" aria-labelledby="skipTitle">
+    <form method="dialog" id="skipForm">
+      <div class="dlg-head"><h2 id="skipTitle">Skip <span id="skipName"></span></h2></div>
+      <div class="dlg-body form">
+        <label>Note (optional)
+          <input type="text" id="skipNote" maxlength="200" autocomplete="off" placeholder="For example: not in PDF">
+        </label>
+        <div class="chips">
+          <button type="button" class="chip" data-note="Not in PDF">Not in PDF</button>
+          <button type="button" class="chip" data-note="Diagram not clear">Diagram not clear</button>
+          <button type="button" class="chip" data-note="No diagram needed">No diagram needed</button>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary" value="skip">Skip</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirm -->
+  <dialog id="confirmDialog" class="dlg narrow" aria-labelledby="confirmTitle">
+    <form method="dialog">
+      <div class="dlg-head"><h2 id="confirmTitle"></h2></div>
+      <div class="dlg-body"><p id="confirmText"></p></div>
+      <div class="dlg-foot">
+        <span class="spacer"></span>
+        <button type="submit" class="btn" value="no">Cancel</button>
+        <button type="submit" class="btn primary" value="yes" id="confirmOk">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input type="file" id="pdfInput" accept=".pdf,application/pdf" multiple hidden>
+  <input type="file" id="excelInput" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+  <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+  <input type="file" id="settingsInput" accept=".json,application/json" hidden>
+</body>
+</html>

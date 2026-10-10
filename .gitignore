@@ -1,0 +1,26 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+.vite/
+package-lock.json
+
+# Every .env variant, not just the bare name — `.env.production` and `.env.bak`
+# carry the same secrets and were not covered.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Azure Functions settings should never appear in a frontend repo — but the one
+# credential leak this project has had came from an unexpected filename, so all
+# four repos carry identical protection rather than relying on that assumption.
+local.settings.json
+local?settings.json*
+local?settings*.json
+!*.example
