@@ -25,6 +25,16 @@ No `npm install` is needed to use the app, because the libraries (pdf.js, SheetJ
 4. **Crop.** The name at the top is the one that will be saved. **Click once on its diagram** and the box snaps around it, labels and caption included. Or drag a box yourself. Adjust the box with the handles if needed, then click **Approve** (or press Enter). The file is saved, and the next pending name becomes active. Click **Retake** (or press Esc) to try again.
 5. **Finish and check.** Click **Finish and check** to see what is done, skipped and still pending. Then click **Check that every name has a file** and download the CSV report, the ZIP, or the updated Excel (with an image status column).
 
+### Automatic names (no list needed)
+
+By default each crop is named **page_question_figure.png**, for example `3_12_1.png` for the first diagram of Q12 on page 3. You don't need to load a names list. Just choose the folder, open the PDF, and crop.
+
+- **Page** is the page the box is on.
+- **Question** is the nearest question number ("Q12", "12." or "12)") above the box in the PDF text. If none is above it on that page, the last one on an earlier page is used.
+- **Figure** counts up for each image of the same question on the same page (1, 2, …) and never overwrites an existing file.
+
+All three show in the crop panel, so you can correct them before you approve. Scanned PDFs have no text, so type the question number there. To use your own names from a list or Excel, untick **Settings → Name each crop automatically**.
+
 ### Click to crop
 
 One click inside a diagram, on a line or in an empty space inside it, selects the whole diagram:

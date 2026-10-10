@@ -388,6 +388,10 @@ input[type=checkbox] { accent-color: var(--primary); }
 .cp-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
 .cp-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .cp-name strong { font: 700 15px var(--mono); }
+.cp-auto { display: flex; gap: 8px; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+.cp-auto[hidden] { display: none; }
+.cp-auto label { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.cp-auto input { width: 100%; font: 600 13px var(--mono); padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
 .cp-preset { font-size: 12px; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 .cp-mode { font-size: 12px; background: var(--primary-soft); color: #173b9e; padding: 7px 10px; border-radius: 8px; margin-bottom: 8px; font-weight: 600; }
 .cp-preview {

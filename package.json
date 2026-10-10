@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "samples": "node tests/make-samples.mjs",
-    "test": "node tests/unit-names.mjs && node tests/unit-quality.mjs && node tests/e2e.mjs && node tests/e2e-editor.mjs && node tests/e2e-click.mjs"
+    "test": "node tests/unit-names.mjs && node tests/unit-quality.mjs && node tests/e2e.mjs && node tests/e2e-editor.mjs && node tests/e2e-click.mjs && node tests/e2e-autoname.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.55.0",

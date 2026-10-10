@@ -185,6 +185,11 @@
       <div class="cp-name"><span class="muted">Save as</span> <strong id="cpName"></strong></div>
       <button type="button" class="btn small" id="editBtn" title="Open the full editor (or double-click the preview)"><svg class="ico"><use href="#i-edit"/></svg>Edit</button>
     </div>
+    <div class="cp-auto" id="cpAuto" hidden>
+      <label>Page <input type="number" id="cpPage" min="1" step="1" inputmode="numeric"></label>
+      <label>Question <input type="text" id="cpQno" maxlength="10" inputmode="numeric"></label>
+      <label>Figure <input type="number" id="cpFig" min="1" step="1" inputmode="numeric"></label>
+    </div>
     <div class="cp-preset" id="cpPreset"></div>
     <div class="cp-mode" id="cpMode" hidden>This is the saved crop. Adjust it and Approve to replace the file, or draw a new box.</div>
     <div class="cp-preview" title="Double-click to open the editor"><canvas id="cpCanvas"></canvas></div>
@@ -228,6 +233,7 @@
 
       <section class="step" id="stepNames">
         <h3><span class="step-no">2</span> Load the image names</h3>
+        <p class="muted" id="autoNameNote" hidden>Optional: automatic names are on, so each crop is saved as page_question_figure.png (for example 3_12_1.png). To use your own names, turn it off in Settings.</p>
         <div class="tabs" role="tablist">
           <button type="button" role="tab" class="tab" id="tabPaste" aria-selected="true">Paste names</button>
           <button type="button" role="tab" class="tab" id="tabExcel" aria-selected="false">Upload Excel</button>
@@ -300,6 +306,7 @@
         </label>
         <label class="check"><input type="checkbox" id="setAutoFind"> Scroll to each question in the PDF automatically</label>
         <label class="check"><input type="checkbox" id="setClickCrop"> Click a diagram to select it automatically</label>
+        <label class="check"><input type="checkbox" id="setAutoName"> Name each crop automatically as page_question_figure (e.g. 3_12_1.png), no names list needed</label>
         <h3>Stored original crops</h3>
         <p class="muted" id="origUsage">—</p>
         <p class="muted small-note">Originals let you re-edit and re-process images without losing quality.</p>

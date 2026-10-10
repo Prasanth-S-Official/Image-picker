@@ -475,6 +475,29 @@ export class Viewer {
     return null;
   }
 
+  /**
+   * Number of the question a box belongs to: the nearest "Q12" / "12." / "12)" above the middle of the box,
+   * on its first page or, failing that, the last one on an earlier page. '' when none is found (e.g. scanned PDFs).
+   */
+  async questionNoFor(b) {
+    const idx = await this.textIndex();
+    const pc = this.pieces(b)[0];
+    if (!idx || !pc) return '';
+    const re = /^(?:q(?:uestion)?\s*\.?\s*(\d{1,3})\b|(\d{1,3})\s*[.)](?!\d))/i;
+    const yMid = (pc.y0 + pc.y1) / 2;
+    for (let pi = pc.p.i; pi >= 0; pi--) {
+      let best = null;
+      for (const it of idx[pi].items) {
+        if (pi === pc.p.i && it.y > yMid) continue;
+        const m = re.exec(it.str);
+        if (!m) continue;
+        if (!best || it.y > best.y + 2 || (Math.abs(it.y - best.y) <= 2 && it.x < best.x)) best = { y: it.y, x: it.x, n: m[1] || m[2] };
+      }
+      if (best) return best.n;
+    }
+    return '';
+  }
+
   /** Text found inside the box (only once the text index is ready; otherwise null). */
   textInBox(b) {
     if (!this.text) return null;

@@ -16,7 +16,7 @@ const $ = (id) => document.getElementById(id);
 const LS_KEY = 'diagram-cropper-state-v1';
 const TEXT_LEN = 150;
 const MAX_RECENT_PDFS = 3;
-const DEFAULT_SETTINGS = { dpi: 300, autoFind: true, clickCrop: true };
+const DEFAULT_SETTINGS = { dpi: 300, autoFind: true, clickCrop: true, autoName: true };
 const DETECT_SCALE = 1.5; // page picture for finding diagrams: 108 dpi
 const MM = 72 / 25.4; // pts per mm
 const QUALITY_CODES = ['nearlyBlank', 'dark', 'blurry', 'small'];
@@ -253,7 +253,7 @@ async function storeSaved(idx, blob, info) {
       await setOriginal(name, b);
     }).catch((e) => console.warn('Original not stored', e));
   }
-  R.undo.push({ kind: 'save', targets: [{ index: idx, name, prevItem: clone(item), prevBlob, prevOrig }] });
+  R.undo.push({ kind: 'save', targets: [{ index: idx, name, prevItem: clone(item), prevBlob, prevOrig, added: !!info.added }] });
   const patch = { status: 'done', w: info.w, h: info.h, savedAt: Date.now(), note: '', edit: info.edit, warnings: info.warnings || [] };
   for (const k of ['pdf', 'page', 'box', 'source', 'copyOf']) if (info[k] !== undefined) patch[k] = info[k];
   Object.assign(item, patch);
@@ -274,6 +274,7 @@ const viewer = new Viewer($('scroller'), {
 
 function canCrop() {
   if (folder.supported && !folder.isReady()) return 'Choose the images folder first.';
+  if (S.settings.autoName !== false) return R.busy ? 'Saving… one moment.' : null;
   if (!S.items.length) return 'Load the image names first. Click "Setup".';
   if (!S.items[S.active]) return 'All names are done or skipped. Click a name in the list to replace its image.';
   if (R.busy) return 'Saving… one moment.';
@@ -363,7 +364,10 @@ function onBoxChange(b, reason) {
 }
 
 function showPanel() {
-  if ($('cropPanel').hidden) R.panelFresh = true;
+  if ($('cropPanel').hidden) {
+    R.panelFresh = true;
+    R.auto = { page: '', qno: '', fig: '', typed: {} };
+  }
   $('cropPanel').hidden = false;
   $('cpMode').hidden = !R.prevShown;
   updatePanelName();
@@ -376,7 +380,65 @@ function hidePanel() {
 
 function updatePanelName() {
   const it = S.items[S.active];
-  $('cpName').textContent = it ? it.name : '—';
+  if (autoNaming()) $('cpName').textContent = autoReady(R.auto) ? autoName(R.auto) : 'type the question number';
+  else $('cpName').textContent = it ? it.name : '—';
+}
+
+// ---------- automatic names: page_question_figure
+
+/** True when this crop is named from where it is in the PDF instead of from the names list. */
+const autoNaming = () => S.settings.autoName !== false && !R.prevShown;
+const autoName = (a) => `${a.page}_${a.qno}_${a.fig}.png`;
+const autoReady = (a) => !!(a && a.page && a.qno && a.fig);
+const nameTaken = (n) => S.items.some((it) => it.name.toLowerCase() === n.toLowerCase())
+  || folder.hasFile(n) || !!folder.caseMismatch(n);
+
+/** First figure number not yet used for this page and question. */
+function nextFig(page, qno) {
+  let f = 1;
+  while (nameTaken(autoName({ page, qno, fig: f }))) f++;
+  return f;
+}
+
+let autoToken = 0;
+/** Fills in page, question and figure for the current box. Values the user typed are kept. */
+async function refreshAuto() {
+  const a = R.auto;
+  const b = viewer.box;
+  if (!a || !b || !autoNaming()) { renderAuto(); return; }
+  const token = ++autoToken;
+  if (!a.typed.page) a.page = viewer.boxPages(b)[0] || '';
+  if (!a.typed.qno) {
+    const q = await viewer.questionNoFor(b);
+    if (token !== autoToken || R.auto !== a) return;
+    a.qno = q;
+  }
+  if (!a.typed.fig) a.fig = a.page && a.qno ? nextFig(a.page, a.qno) : '';
+  renderAuto();
+}
+
+function renderAuto() {
+  const a = R.auto;
+  const on = !!a && autoNaming();
+  $('cpAuto').hidden = !on;
+  if (on) {
+    for (const [id, k] of [['cpPage', 'page'], ['cpQno', 'qno'], ['cpFig', 'fig']]) {
+      if (document.activeElement !== $(id)) $(id).value = a[k];
+    }
+  }
+  updatePanelName();
+}
+
+function onAutoInput(k, raw) {
+  const a = R.auto;
+  if (!a) return;
+  const v = String(raw).trim();
+  a.typed[k] = v !== '';
+  if (!a.typed[k]) { refreshAuto(); return; } // cleared: work it out again
+  const n = parseInt(v, 10);
+  a[k] = k === 'qno' ? v.replace(/[^a-z0-9-]/gi, '') : (n > 0 ? n : '');
+  if (k !== 'fig' && !a.typed.fig) a.fig = a.page && a.qno ? nextFig(a.page, a.qno) : '';
+  renderAuto();
 }
 
 function schedulePreview() {
@@ -413,6 +475,7 @@ function drawPreview() {
     panelProcess(pv, ratio);
   }
   renderPanelPreset();
+  refreshAuto();
   positionPanel();
 }
 
@@ -560,16 +623,31 @@ function setPanelBusy(on) {
 
 async function approve() {
   if (R.busy) return;
+  if (viewer.box && autoNaming()) await refreshAuto(); // the question number may still be being found
+  if (R.busy) return;
   const b = viewer.box;
   if (!b) return;
   const block = canCrop();
   if (block) { toast(block, 'warn'); return; }
+  const auto = autoNaming();
+  if (auto && !autoReady(R.auto)) {
+    toast('The question number was not found in the PDF text. Type it in the panel, then Approve.', 'warn', 6000);
+    $(R.auto && !R.auto.page ? 'cpPage' : R.auto && !R.auto.qno ? 'cpQno' : 'cpFig').focus();
+    return;
+  }
+  if (auto && nameTaken(autoName(R.auto))) {
+    toast(`${autoName(R.auto)} already exists. Change the figure number.`, 'warn');
+    $('cpFig').focus();
+    return;
+  }
+  if (!auto && !S.items[S.active]) { toast('There is no active name to save as.', 'warn'); return; }
   drawPreview();
   if ((R.warnings || []).some((x) => x.code === 'blank')) { toast('The box is empty. Draw it over the diagram.', 'warn'); return; }
   const warnings = (R.warnings || []).map((x) => x.code).filter((c) => !QUALITY_CODES.includes(c));
 
   // Everything is fixed at this moment: the name, the box, the PDF, the edits.
-  const idx = S.active;
+  if (auto) S.items.push(newItem({ name: autoName(R.auto), qno: String(R.auto.qno) }));
+  const idx = auto ? S.items.length - 1 : S.active;
   const item = S.items[idx];
   const name = item.name;
   const pdfName = S.currentPdf;
@@ -596,11 +674,12 @@ async function approve() {
     const flags = qualityCodes(res);
     await storeSaved(idx, res.blob, {
       original, edit, w: res.w, h: res.h, pdf: pdfName, page: pageLabel(pages), box, source: 'crop', copyOf: '',
-      warnings: [...new Set([...warnings, ...flags])],
+      warnings: [...new Set([...warnings, ...flags])], added: auto,
     });
     R.editDraft = null;
     S.lastSaved = { pdf: pdfName, y: Math.max(0, box.y0 - 30), page: pages[0], name };
-    if (S.active === idx) moveToNext(idx);
+    if (auto) renderList();
+    else if (S.active === idx) moveToNext(idx);
     else refreshRow(idx);
     showSavedCard(idx, res.blob);
     if (flags.length) {
@@ -611,6 +690,7 @@ async function approve() {
     persist();
   } catch (e) {
     console.error(e);
+    if (auto && S.items[idx] === item && item.status !== 'done') { S.items.splice(idx, 1); renderList(); }
     // put the box back so the user can try again
     viewer.setBox(box);
     if (draft) R.editDraft = draft;
@@ -867,12 +947,21 @@ async function undo() {
           dropBlob(t.name);
         }
       }
-      if (S.items[t.index] && S.items[t.index].name === t.name) S.items[t.index] = t.prevItem;
+      if (t.added) {
+        const i = S.items.findIndex((x) => x.name === t.name);
+        if (i >= 0) S.items.splice(i, 1);
+      } else if (S.items[t.index] && S.items[t.index].name === t.name) S.items[t.index] = t.prevItem;
     }
     viewer.clearBox();
     const first = e.targets[0];
-    setActive(first.index);
-    refreshRow(first.index);
+    if (first.added) {
+      S.active = -1;
+      renderList();
+      setActive(-1);
+    } else {
+      setActive(first.index);
+      refreshRow(first.index);
+    }
     renderTop();
     persist();
     let msg = e.kind === 'skip' ? `Undid skip of ${first.name}.`
@@ -1235,7 +1324,11 @@ function renderTop() {
   const it = S.items[S.active];
   const nameEl = $('activeName');
   const c = counts();
-  if (!S.items.length) {
+  if (S.settings.autoName !== false && !(it && it.status === 'done')) {
+    nameEl.textContent = 'page_question_figure.png';
+    nameEl.className = 'active-name';
+    $('activeLabel').textContent = 'Automatic names — each crop is saved as';
+  } else if (!S.items.length) {
     nameEl.textContent = 'No names loaded';
     nameEl.className = 'active-name none';
     $('activeLabel').textContent = 'Now cropping';
@@ -1591,7 +1684,8 @@ function renderSetup() {
   $('stepPdf').classList.toggle('complete', !!viewer.doc);
   const c = counts();
   $('setupSummary').textContent = S.items.length ? `${S.items.length} names in the list · ${c.done} done` : '';
-  $('startBtn').disabled = !S.items.length;
+  $('autoNameNote').hidden = S.settings.autoName === false;
+  $('startBtn').disabled = !S.items.length && S.settings.autoName === false;
 }
 
 function setTab(which) {
@@ -2241,6 +2335,7 @@ function renderSettingsPage() {
   $('setDpi').value = String(S.settings.dpi || 300);
   $('setAutoFind').checked = !!S.settings.autoFind;
   $('setClickCrop').checked = S.settings.clickCrop !== false;
+  $('setAutoName').checked = S.settings.autoName !== false;
   renderOrigUsage();
 }
 
@@ -2340,6 +2435,16 @@ function wireSettingsPage() {
   $('setDpi').onchange = () => { S.settings.dpi = Number($('setDpi').value) || 300; persist(); schedulePreview(); };
   $('setAutoFind').onchange = () => { S.settings.autoFind = $('setAutoFind').checked; persist(); };
   $('setClickCrop').onchange = () => { S.settings.clickCrop = $('setClickCrop').checked; persist(); renderToolbar(); };
+  $('setAutoName').onchange = () => {
+    S.settings.autoName = $('setAutoName').checked;
+    if (viewer.box && !R.prevShown) viewer.clearBox();
+    persist();
+    renderTop();
+  };
+  for (const [id, k] of [['cpPage', 'page'], ['cpQno', 'qno'], ['cpFig', 'fig']]) {
+    $(id).addEventListener('input', () => onAutoInput(k, $(id).value));
+    $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); approve(); } });
+  }
   $('setExport').onclick = exportSettings;
   $('setImport').onclick = () => $('settingsInput').click();
   $('settingsInput').onchange = (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) importSettings(f); };

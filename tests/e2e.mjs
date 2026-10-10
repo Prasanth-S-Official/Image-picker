@@ -108,6 +108,7 @@ async function main() {
     await page.goto(`${URL}samples/`);
     await page.evaluate(async () => {
       localStorage.clear();
+      localStorage.setItem('diagram-cropper-state-v1', JSON.stringify({ settings: { autoName: false } })); // these tests use a names list
       await new Promise((r) => { const q = indexedDB.deleteDatabase('diagram-cropper'); q.onsuccess = q.onerror = q.onblocked = r; });
       const rootDir = await navigator.storage.getDirectory();
       try { await rootDir.removeEntry('images', { recursive: true }); } catch { /* none */ }
@@ -380,7 +381,10 @@ async function main() {
 
     // ---- second pass: a browser without folder access (download fallback) + pasted names
     const ctx2 = await browser.newContext({ viewport: { width: 1366, height: 768 }, acceptDownloads: true });
-    await ctx2.addInitScript(() => { delete window.showDirectoryPicker; delete Window.prototype.showDirectoryPicker; });
+    await ctx2.addInitScript(() => {
+      delete window.showDirectoryPicker; delete Window.prototype.showDirectoryPicker;
+      if (!localStorage.getItem('diagram-cropper-state-v1')) localStorage.setItem('diagram-cropper-state-v1', JSON.stringify({ settings: { autoName: false } }));
+    });
     const p2 = await ctx2.newPage();
     await p2.goto(URL);
     await p2.waitForSelector('#setupDialog[open]');

@@ -41,6 +41,7 @@ try {
   await page.goto(`http://localhost:${PORT}/samples/`);
   await page.evaluate(async () => {
     localStorage.clear();
+    localStorage.setItem('diagram-cropper-state-v1', JSON.stringify({ settings: { autoName: false } })); // these tests use a names list
     await new Promise((r) => { const q = indexedDB.deleteDatabase('diagram-cropper'); q.onsuccess = q.onerror = q.onblocked = r; });
     const rd = await navigator.storage.getDirectory();
     try { await rd.removeEntry('images', { recursive: true }); } catch { /* none */ }
